@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidSavedMeal(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.title is string && data.title.size() <= 200 &&
+             (!('tagline' in data) || (data.tagline is string && data.tagline.size() <= 300)) &&
+             (!('cuisine' in data) || (data.cuisine is string && data.cuisine.size() <= 100)) &&
+             (!('spiceLevel' in data) || (data.spiceLevel is string && data.spiceLevel.size() <= 50)) &&
+             (!('prepTimeMinutes' in data) || data.prepTimeMinutes is number) &&
+             (!('cookTimeMinutes' in data) || data.cookTimeMinutes is number) &&
+             (!('servings' in data) || data.servings is number) &&
+             (!('calories' in data) || data.calories is number) &&
+             (!('proteinG' in data) || data.proteinG is number) &&
+             (!('carbsG' in data) || data.carbsG is number) &&
+             (!('fatG' in data) || data.fatG is number) &&
+             (!('healthScore' in data) || data.healthScore is number) &&
+             (!('healthBadge' in data) || (data.healthBadge is string && data.healthBadge.size() <= 100)) &&
+             (!('healthPros' in data) || (data.healthPros is list && data.healthPros.size() <= 20)) &&
+             (!('healthCons' in data) || (data.healthCons is list && data.healthCons.size() <= 20)) &&
+             (!('ingredients' in data) || (data.ingredients is list && data.ingredients.size() <= 100)) &&
+             (!('instructions' in data) || (data.instructions is list && data.instructions.size() <= 100)) &&
+             (!('similarMeals' in data) || (data.similarMeals is list && data.similarMeals.size() <= 20)) &&
+             (!('betterAlternatives' in data) || (data.betterAlternatives is list && data.betterAlternatives.size() <= 20)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000)) &&
+             (!('isFavorite' in data) || data.isFavorite is bool) &&
+             (!('hasCooked' in data) || data.hasCooked is bool) &&
+             (!('fullDetail' in data) || data.fullDetail is map) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64)) &&
+             data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    match /users/{userId}/savedMeals/{mealId} {
+      allow get, list, delete: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && 
+                    request.auth.uid == userId && 
+                    isValidId(mealId) && 
+                    isValidSavedMeal(incoming()) && 
+                    incoming().userId == request.auth.uid;
+      allow update: if isSignedIn() && 
+                    request.auth.uid == userId && 
+                    isValidId(mealId) && 
+                    isValidSavedMeal(incoming()) && 
+                    incoming().userId == existing().userId;
+    }
+
+    // Health / connection test document (read-only for testing)
+    match /test/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "MealCrafter AI",
+  "description": "AI-powered meal discovery, recipes, nearby restaurant finder with location & quality filters, health insights, and saved meals.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
